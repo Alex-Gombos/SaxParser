@@ -1,5 +1,7 @@
 package com.company;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -101,10 +103,11 @@ public class WiktionarySaxHandler extends DefaultHandler implements SAXHandlerIN
 	private String sLang = "";
 
 	// ++++++++++++++++ MEMBER FUNCTIONS +++++++++++++++
-
-	public VData<ArrayIntObj> ReadData() {
+	public VData<ArrayIntObj> ReadData() throws IOException {
 		if(doDict) {
 			System.out.println("Saving Dictionary");
+			ExportToCSV exportToCSV = new ExportToCSV(vWords);
+			exportToCSV.givenDataArray_whenConvertToCSV_thenOutputCreated();
 			//new ExportCSV().Write(vWords);
 			System.out.println(vWords);
 		}
@@ -255,6 +258,7 @@ public class WiktionarySaxHandler extends DefaultHandler implements SAXHandlerIN
 						word.sOther = sOther;
 						word.idBase = idBase;
 						word.idWord = vResult.size(); // TODO: unique IDs;
+						//System.out.println(Arrays.toString(word.returnStringArray()));
 						matchWParenth.reset(word.sWord);
 						while(matchWParenth.find()) {
 							word.sOther = (word.sOther.isEmpty() ? "" : word.sOther + " ")

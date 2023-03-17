@@ -23,4 +23,8 @@ public class WordDictObj {
 					this.sLang + ", " +
 					this.sOther;
 	}
+
+	public String[] returnStringArray(){
+		return new String[]{this.toString()};
+	}
 }
