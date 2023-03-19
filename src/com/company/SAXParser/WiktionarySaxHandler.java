@@ -1,7 +1,6 @@
-package com.company;
+package com.company.SAXParser;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,12 +8,6 @@ import java.util.regex.Pattern;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import com.company.ArrayIntObj;
-import com.company.WORD_TYPE;
-import com.company.WordDictObj;
-import com.company.WordDictTbl;
-import com.company.VData;
 
 
 public class WiktionarySaxHandler extends DefaultHandler implements SAXHandlerINTF {

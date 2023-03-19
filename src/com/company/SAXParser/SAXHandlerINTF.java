@@ -1,9 +1,6 @@
-package com.company;
+package com.company.SAXParser;
 
 import org.xml.sax.ContentHandler;
-
-import com.company.ArrayIntObj;
-import com.company.VData;
 
 import java.io.IOException;
 

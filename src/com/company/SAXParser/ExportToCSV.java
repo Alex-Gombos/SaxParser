@@ -1,4 +1,4 @@
-package com.company;
+package com.company.SAXParser;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;

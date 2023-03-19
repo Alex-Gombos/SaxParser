@@ -1,4 +1,4 @@
-package com.company;
+package com.company.SAXParser;
 
 public interface ImportGetINTF {
 	public int [] GetInt();

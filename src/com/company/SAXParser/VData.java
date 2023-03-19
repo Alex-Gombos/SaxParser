@@ -1,8 +1,6 @@
-package com.company;
+package com.company.SAXParser;
 
 import java.util.Vector;
-
-import com.company.ImportGetINTF;
 
 
 public class VData <T extends ImportGetINTF> extends Vector<T> {
