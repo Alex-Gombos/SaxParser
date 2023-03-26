@@ -2,14 +2,14 @@ package com.company.Wikipedia;
 
 import java.util.ArrayList;
 
-public class Article {
+public class ArticleCorpus {
     private ArrayList<ArticleLine> list = new ArrayList<>();
 
-    public Article(ArrayList<ArticleLine> list) {
+    public ArticleCorpus(ArrayList<ArticleLine> list) {
         this.list = list;
     }
 
-    public Article() {
+    public ArticleCorpus() {
 
     }
 

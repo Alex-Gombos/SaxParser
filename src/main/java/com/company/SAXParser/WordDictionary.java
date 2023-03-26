@@ -7,7 +7,7 @@ public class WordDictionary {
     HashMap<String, String> dictionary = new HashMap<>();
     List<List<String>> records = new ArrayList<>();
 
-    public void createDictionary(File file){
+    public void createWiktionaryMap(File file){
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -19,9 +19,10 @@ public class WordDictionary {
         }
     }
 
-    public HashMap<String,String> getDictionary() {
+    public HashMap<String,String> getWiktionaryMap() {
         for (List<String> list : records) {
-            dictionary.put(list.get(0), list.get(1));
+            if(list.size()>=2)
+                dictionary.put(list.get(0), list.get(1));
         }
         return dictionary;
     }

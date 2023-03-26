@@ -102,7 +102,6 @@ public class WiktionarySaxHandler extends DefaultHandler implements SAXHandlerIN
 			ExportToCSV exportToCSV = new ExportToCSV(vWords);
 			exportToCSV.givenDataArray_whenConvertToCSV_thenOutputCreated();
 			//new ExportCSV().Write(vWords);
-			System.out.println(vWords);
 		}
 		return vData;
 	}
