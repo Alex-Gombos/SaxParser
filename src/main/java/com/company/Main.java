@@ -40,7 +40,7 @@ public class Main {
 
         // Choose words by which to filter the wikipedia articles
 
-        List<String> tokens = new ArrayList<String>();
+        List<String> tokens = new ArrayList<>();
         tokens.add("eritrocit");
         tokens.add("limfocit");
         tokens.add("monocit");
@@ -77,14 +77,21 @@ public class Main {
         }
 
         //wikipediaReader.countWords(splitWords, wikipediaWords); // find which words occur in more than one article
+
         HashMap<String, HashSet<Integer>> mapWords = new HashMap<>();
-        wikipediaReader.countWordsNew(splitWords, mapWords);
-
-        for(String key:mapWords.keySet()){
-            if(mapWords.get(key).size()>1){
-                System.out.println("Word: "+ key + " appears " + mapWords.get(key).size()+ " times");
-            }
+        HashMap<String, Double> mapWordsTFIDF = new HashMap<>();
+//        wikipediaReader.countWordsNew(splitWords, mapWords);
+//
+//        for(String key:mapWords.keySet()){
+//            if(mapWords.get(key).size()>1){
+//                System.out.println("Word: "+ key + " appears " + mapWords.get(key).size()+ " times");
+//            }
+//        }
+        wikipediaReader.countWordsTFIDF(splitWords, mapWordsTFIDF);
+        final boolean DESC = false;
+        HashMap<String, Double> sortedTFIDF = (HashMap<String, Double>) wikipediaReader.sortByValue(mapWordsTFIDF, DESC);
+        for(String key:sortedTFIDF.keySet()){
+            System.out.println("Word " + key + " has a value of: " + sortedTFIDF.get(key));
         }
-
     }
 }
