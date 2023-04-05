@@ -3,21 +3,17 @@ package com.company.Wikipedia;
 import java.util.ArrayList;
 
 public class ArticleCorpus {
-    private ArrayList<ArticleLine> list = new ArrayList<>();
-
-    public ArticleCorpus(ArrayList<ArticleLine> list) {
-        this.list = list;
-    }
+    private ArrayList<Article> list = new ArrayList<>();
 
     public ArticleCorpus() {
 
     }
 
-    public void AppendArticle(ArticleLine articleLine){
-        list.add(articleLine);
+    public void AppendArticle(Article article){
+        list.add(article);
     }
 
-    public ArrayList<ArticleLine> getList() {
+    public ArrayList<Article> getArticles() {
         return list;
     }
 }

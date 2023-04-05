@@ -2,6 +2,7 @@ package com.company.SAXParser;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -19,7 +20,6 @@ public class ExportToCSV {
         String escapedData = data;
         escapedData = escapedData.replaceAll("\\{", "");
         escapedData = escapedData.replaceAll("}", "");
-//        escapedData = escapedData.replaceAll(",", "");
         return escapedData;
     }
     public String convertToCSV(WordDictObj data) {

@@ -3,9 +3,7 @@ package com.company;
 import com.company.SAXParser.WiktionarySaxHandler;
 import com.company.SAXParser.WordDictionary;
 import com.company.Wikipedia.ArticleCorpus;
-import com.company.Wikipedia.ArticleLine;
 import com.company.Wikipedia.WikipediaReader;
-import javafx.util.Pair;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -13,7 +11,6 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyStore;
 import java.util.*;
 
 public class Main {
@@ -45,53 +42,47 @@ public class Main {
         tokens.add("limfocit");
         tokens.add("monocit");
         tokens.add("hematopoeza");
+        ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
 
-        wikipediaReader.filter(articleCorpus, tokens); // Filter said articles
+        String match = "match";
+        String notMatch = "notMatch";
+
+        // Filter said articles
+        listWithFilteredArticles = wikipediaReader.filter(articleCorpus, tokens, match);
 
         File yourFile = new File("filteredText.txt");
-        yourFile.createNewFile();
-        wikipediaReader.out(yourFile, articleCorpus);   // print filtered articles
+        if(yourFile.createNewFile()){
+            System.out.println("Created file");
+        }
 
         WordDictionary wordDictionary = new WordDictionary();
 
-        File yourFile1 = new File("parseOutPut.csv"); // load the wiktionary words written to the "parseOutPut.csv file" back
-        //into memmory. This is useful because the wiktionary dump needs to be parsed only one, and the we can just read from the CSV
+        // load the wiktionary words written to the "parseOutPut.csv file" back into memmory.
+        // This is useful because the wiktionary dump needs to be parsed only one, and the we can just read from the CSV
+        File yourFile1 = new File("parseOutPut.csv");
 
-        yourFile.createNewFile();
+        if(yourFile1.createNewFile()){
+            System.out.println("Created file");
+        }
 
         wordDictionary.createWiktionaryMap(yourFile1); // create a map for which the key is the actual word and the value is its root
         HashMap<String, String> dictionary = wordDictionary.getWiktionaryMap();
         List<List<String>> splitWords;
-       // HashMap<String, Pair<List<String>, Integer>> wikipediaWords = new HashMap<>();
-        splitWords = wikipediaReader.findWordsInWiktionary(articleCorpus, dictionary); // split articles into words, and change every
+
+        // split articles into words, and change every
         // word to its root (if it exists in the database)
+        splitWords = wikipediaReader.findWordsInWiktionary(listWithFilteredArticles, dictionary);
 
-        System.out.println();
-        System.out.println("Below is processed Wikipedia text");
-        System.out.println();
+        Map<String, Double> mapWordsTFIDF = wikipediaReader.computeTFIDF(splitWords);
 
-        for (List<String> item:splitWords){
-            for (String item2:item)
-                System.out.print(item2 + " ");
-            System.out.println();
-        }
-
-        //wikipediaReader.countWords(splitWords, wikipediaWords); // find which words occur in more than one article
-
-        HashMap<String, HashSet<Integer>> mapWords = new HashMap<>();
-        HashMap<String, Double> mapWordsTFIDF = new HashMap<>();
-//        wikipediaReader.countWordsNew(splitWords, mapWords);
-//
-//        for(String key:mapWords.keySet()){
-//            if(mapWords.get(key).size()>1){
-//                System.out.println("Word: "+ key + " appears " + mapWords.get(key).size()+ " times");
-//            }
-//        }
-        wikipediaReader.countWordsTFIDF(splitWords, mapWordsTFIDF);
         final boolean DESC = false;
-        HashMap<String, Double> sortedTFIDF = (HashMap<String, Double>) wikipediaReader.sortByValue(mapWordsTFIDF, DESC);
+        Map<String, Double> sortedTFIDF = wikipediaReader.sortByValueMap(mapWordsTFIDF, DESC);
         for(String key:sortedTFIDF.keySet()){
             System.out.println("Word " + key + " has a value of: " + sortedTFIDF.get(key));
         }
+        System.out.println(splitWords.size());
+
+        wikipediaReader.sampleNonRelatedArticles(articleCorpus, tokens, dictionary, sortedTFIDF);
+        wikipediaReader.writeToFile(sortedTFIDF, "tfidf.txt");
     }
 }
