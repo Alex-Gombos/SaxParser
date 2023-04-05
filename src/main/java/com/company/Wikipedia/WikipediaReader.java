@@ -1,37 +1,44 @@
 package com.company.Wikipedia;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
-import javafx.util.Pair;
-
 public class WikipediaReader {
-    FileInputStream inputStream = null;
-    FileOutputStream outputStream = null;
-    Scanner sc = null;
 
+    // calculate log2 N indirectly
+    // using log() method
+    public static double log2(double N) {
+        return (Math.log(N) / Math.log(2));
+    }
+
+    // load the corpus into memory; Corpus is stored in object ArticleCorpus
     public void read(String uri, ArticleCorpus articleCorpus) throws IOException {
-        try {
-            inputStream = new FileInputStream(uri);
-            sc = new Scanner(inputStream, StandardCharsets.UTF_8);
-            ArticleLine articleLine = new ArticleLine();
+        try (FileInputStream inputStream = new FileInputStream(uri);
+             Scanner sc = new Scanner(inputStream, StandardCharsets.UTF_8)) {
+            Article article = new Article();
+            //read corpus line by line; each article is stored in a Article object
             while (sc.hasNextLine()) {
                 String line = sc.nextLine();
-                //System.out.println(line);
                 if (!line.isEmpty()) {
-                    articleLine.AddWord(line);
+                    // add read line to a article
+                    article.AddWord(line);
                 } else {
-                    articleCorpus.AppendArticle(articleLine);
-                    articleLine = new ArticleLine();
+                    // add article to corpus Obect
+                    articleCorpus.AppendArticle(article);
+                    article = new Article();
                 }
 
             }
-            // note that Scanner suppresses exceptions
+            if (article.getStrings().size() > 0) {
+                articleCorpus.AppendArticle(article);
+            }
             if (sc.ioException() != null) {
                 try {
                     throw sc.ioException();
@@ -41,22 +48,17 @@ public class WikipediaReader {
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        } finally {
-            if (inputStream != null) {
-                inputStream.close();
-            }
-            if (sc != null) {
-                sc.close();
-            }
         }
     }
 
+    // print every article stored in memory
     public void out(File file, ArticleCorpus articleCorpus) {
+        FileOutputStream outputStream;
         try {
             outputStream = new FileOutputStream(file);
-            ArrayList<ArticleLine> arrayList = articleCorpus.getList();
+            ArrayList<Article> arrayList = articleCorpus.getArticles();
             byte[] strToBytes;
-            for (ArticleLine item : arrayList) {
+            for (Article item : arrayList) {
                 ArrayList<String> vector = item.getStrings();
                 for (String item2 : vector) {
                     strToBytes = item2.getBytes();
@@ -70,156 +72,125 @@ public class WikipediaReader {
         }
     }
 
-    public void filter(ArticleCorpus articleCorpus, List<String> tokensList) {
-        String patternString = "\\b(" + StringUtils.join(tokensList, "|") + ")\\b"; // sa pun fara boundary
+    // filter the large corpus based on token words, and return a new Article corpus object with the filtered articles
+    public ArticleCorpus filter(ArticleCorpus articleCorpus, List<String> tokensList, String mode) {
+        String patternString = "(?i)(?:" + StringUtils.join(tokensList, "|") + ")";
         Pattern pattern = Pattern.compile(patternString);
-        //pattern.split() TODO inlocuieste cu split
-        List<ArticleLine> removeList = new ArrayList<>();
-        for (ArticleLine item : articleCorpus.getList()) {
-            boolean matchFound = false;
+        ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
+        for (Article item : articleCorpus.getArticles()) {
             for (String item2 : item.getStrings()) {
                 Matcher matcher = pattern.matcher(item2);
-                if (matcher.find())
-                    matchFound = true;
-            }
-            if (!matchFound) {
-                removeList.add(item);
+                if(Objects.equals(mode, "match")) {
+                    if (matcher.find()) {
+                        listWithFilteredArticles.AppendArticle(item);
+                        break;
+                    }
+                }
+                else {
+                    if (!matcher.find()) {
+                        listWithFilteredArticles.AppendArticle(item);
+                        break;
+                    }
+                }
             }
         }
-        articleCorpus.getList().removeAll(removeList);
+        return listWithFilteredArticles;
     }
 
-    public void prepareText(List<String> articleSentence){
-        for(int i=0; i<articleSentence.size(); i++){
-            articleSentence.set(i, articleSentence.get(i).replaceAll("\\(",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll("\\(",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll("\\)",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll("\\.",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll("\\+",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll("-",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll(";",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll(",",""));
-            articleSentence.set(i, articleSentence.get(i).replaceAll(":",""));
+    // clean text
+    public void prepareText(List<String> articleSentence) {
+        for (int i = 0; i < articleSentence.size(); i++) {
+            String sPatRemove = "[\\[\\]()\\.;:\"„,=→]+";
+            String sText = articleSentence.get(i);
+            sText = sText.replaceAll(sPatRemove, "");
+            sText = sText.replaceAll("\\s+", " ");
+            articleSentence.set(i, sText);
         }
     }
 
+    // tokenize the text into words, List<String> holds all words in an article,
+    // and List<List<String>> holds every article in the corpus
     public List<List<String>> splitWords(ArticleCorpus articleCorpus) {
         List<List<String>> splitWords = new ArrayList<>();
-        List<String> items;
-        for (ArticleLine item : articleCorpus.getList()) {
-            StringBuilder stringBuilder = new StringBuilder();
+        for (Article item : articleCorpus.getArticles()) {
             prepareText(item.getStrings());
-            for(String item2:item.getStrings()){
-                stringBuilder.append(item2).append(" ");
+            List<String> items = new ArrayList<>();
+            for (String item2 : item.getStrings()) {
+                //Arrays.stream(item2.split(" ")).forEach(x->items.add(x));
+                items.addAll(Arrays.asList(item2.split(" ")));
             }
-            items = Arrays.asList(stringBuilder.toString().split(" "));
             splitWords.add(items);
         }
         return splitWords;
     }
 
+    // lemmatization
+    // create a new list which holds the same words but changes them to their root (if it exists)
     public List<List<String>> findWordsInWiktionary(ArticleCorpus articleCorpus, HashMap<String, String> wiktionaryWords) {
         List<String> tempList = new ArrayList<>();
         List<List<String>> list = splitWords(articleCorpus);
         List<List<String>> newList = new ArrayList<>();
-        for(List<String> item:list){
-            for(String item1:item) {
-                if(wiktionaryWords.containsKey(item1)) {
-                    //if (!tempList.contains(wiktionaryWords.get(item1))) remove duplicates
-                        tempList.add(wiktionaryWords.get(item1));
-                }
-                else {
-                    //if(!tempList.contains(item1)) remove duplicates
-                        tempList.add(item1);
-                }
+        for (List<String> item : list) {
+            for (String item1 : item) {
+                tempList.add(wiktionaryWords.getOrDefault(item1, item1));
+                tempList.set(tempList.size()-1, tempList.get(tempList.size()-1).replaceAll("^\\s+", ""));
             }
             newList.add(tempList);
             tempList = new ArrayList<>();
         }
 
-
         return newList;
     }
 
-    public void countWords(List<List<String>> list, HashMap<String, Pair<List<String>, Integer>> wikipediaDict) {
-        for(List<String> item:list){
-            for(String item1:item) {
-                if(!wikipediaDict.containsKey(item1)){
-                    Pair<List<String>, Integer> pair = new Pair<>(item, 0);
-                    wikipediaDict.put(item1, pair);
-                }
-                else{
-                    if(wikipediaDict.get(item1).getKey()!=item) {
-                        Pair<List<String>, Integer> pair = new Pair<>(item, wikipediaDict.get(item1).getValue()+1);
-                        wikipediaDict.put(item1,pair);
-                    }
-                }
-            }
-        }
-    }
-    public void countWordsNew(List<List<String>> splitWords, HashMap<String, HashSet<Integer>> mapWords ) {
-        for (List<String> strings : splitWords) {
-            for (String item2 : strings) {
-                HashSet<Integer> set = new HashSet<>();
-                if(mapWords.containsKey(item2)){
-                    set = mapWords.get(item2);
-                }
-                set.add(splitWords.indexOf(strings));
-                mapWords.put(item2, set);
-            }
-        }
-    }
-    public static double log2(double N) {
-
-        // calculate log2 N indirectly
-        // using log() method
-
-        return (Math.log(N) / Math.log(2));
-    }
-    public HashMap<String, Double> countWordsTFIDF(List<List<String>> splitWords, HashMap<String, Double> hashMapTFIDF) {
-        HashMap<String, Vector<Integer>> mapWords = new HashMap<>();
+    // Map each word(String) to a Vector<Integer> to keep in track in what article each word appears and how often
+    public Map<String, Vector<Integer>> trackWordFrequencyInArticles(List<List<String>> splitWords) {
+        Map<String, Vector<Integer>> mapWords = new TreeMap<>();
         for (List<String> strings : splitWords) {
             for (String item2 : strings) {
                 Vector<Integer> vector = new Vector<>();
-                if(mapWords.containsKey(item2)){
+                if (mapWords.containsKey(item2)) {
                     vector = mapWords.get(item2);
                 }
                 vector.add(splitWords.indexOf(strings));
                 mapWords.put(item2, vector);
             }
         }
+        return mapWords;
+    }
 
-        for(String key:mapWords.keySet()) {
-           Collections.sort(mapWords.get(key));
-           int i=mapWords.get(key).get(0);
-           int timeInArticle = 0;
-           for(Integer integer:mapWords.get(key)){
-               if(integer==i){
-                   timeInArticle++;
-               }
-               else {
-                   i++;
-               }
-                   double tf = (double) timeInArticle/splitWords.get(i).size();
-                   int articlesWithWord = 1;
-                   int oldValue = mapWords.get(key).get(0);
-                   for(Integer integer2:mapWords.get(key)){
-                       if(oldValue!=integer2){
-                           articlesWithWord++;
-                           oldValue = integer2;
-                       }
-                   }
-                   double idf =log2(splitWords.size()/(double)articlesWithWord);
-
-                   System.out.println(tf + " " + idf);
-
-                   double tfidf = tf*idf;
-                   hashMapTFIDF.put(key, tfidf);
-           }
+    // compute the TFIDF value for each word
+    public Map<String, Double> computeTFIDF(List<List<String>> splitWords) {
+        // key: word in its base form, value: Vector<Integer> with article index where word appears
+        Map<String, Vector<Integer>> mapWords = trackWordFrequencyInArticles(splitWords);
+        // matrix to keep track of every words TFIDF in every article
+        List<List<Double>> tfidf = new ArrayList<>();
+        // mapOccurrence stores how many times a word appears in which article
+        for (Map.Entry<String, Vector<Integer>> entry : mapWords.entrySet()) {
+            Map<Integer, Long> mapOccurrence = entry.getValue().stream()
+                    .collect(Collectors.groupingBy(
+                            Function.identity(),
+                            TreeMap::new,
+                            Collectors.mapping(Function.identity(), Collectors.counting())));
+            // compute term-frequency for each words in every article
+            List<Double> tf = mapOccurrence.entrySet().stream()
+                    .map(en -> (double) en.getValue() / splitWords.get(en.getKey()).size()).collect(Collectors.toList());
+            double idf = log2((double) splitWords.size() / mapOccurrence.size());
+            tfidf.add(tf.stream().map(tfValue -> tfValue * idf).collect(Collectors.toList()));
         }
+
+        // choose maximum TFIDF for each word(if it appears in more than one article)
+        int i = 0;
+        Map<String, Double> hashMapTFIDF = new HashMap<>();
+        for (var entrySet : mapWords.entrySet()) {
+            hashMapTFIDF.put(entrySet.getKey(),
+                    tfidf.get(i).stream().mapToDouble(v -> v).max().orElseThrow(NoSuchElementException::new));
+            i++;
+        }
+
         return hashMapTFIDF;
     }
-    public Map<String, Double> sortByValue(Map<String, Double> unsortMap, final boolean order) {
+
+    public Map<String, Double> sortByValueMap(Map<String, Double> unsortMap, final boolean order) {
         List<Map.Entry<String, Double>> list = new LinkedList<>(unsortMap.entrySet());
 
         // Sorting the list based on values
@@ -228,7 +199,54 @@ public class WikipediaReader {
                 : o1.getValue().compareTo(o2.getValue()) : o2.getValue().compareTo(o1.getValue()) == 0
                 ? o2.getKey().compareTo(o1.getKey())
                 : o2.getValue().compareTo(o1.getValue()));
-        return list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, LinkedHashMap::new));
+        return list.stream().
+                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, LinkedHashMap::new));
 
+    }
+
+    // sample 50 arbitrary articles that DO NOT contain any of the words selected for filtering
+    // Compute a TDF-like parameter
+    // remove words with high TDF
+    public void sampleNonRelatedArticles(ArticleCorpus articleCorpus,
+                                                 List<String> tokenList,
+                                                 HashMap<String, String> wiktionaryWords,
+                                         Map<String, Double> topicArticlesTFIDF){
+        int baseArticles = 50;
+        ArticleCorpus AllnonTopicArticleCorpus = filter(articleCorpus, tokenList, "notMatch");
+        ArticleCorpus nonTopicArticleCorpus = new ArticleCorpus();
+
+        int upperbound = AllnonTopicArticleCorpus.getArticles().size()-1;
+        Random rand = new Random();
+        int int_random = rand.nextInt(upperbound);
+        while(baseArticles>0){
+            nonTopicArticleCorpus.AppendArticle(AllnonTopicArticleCorpus.getArticles().get(int_random));
+            baseArticles--;
+            int_random = rand.nextInt(upperbound);
+        }
+
+        List<List<String>> splitWordsWiktionary = findWordsInWiktionary(nonTopicArticleCorpus, wiktionaryWords);
+
+        Map<String, Double> nonTopicTFIDF = computeTFIDF(splitWordsWiktionary);
+        final boolean DESC = false;
+        Map<String, Double> sortedTFIDF = sortByValueMap(nonTopicTFIDF, DESC);
+
+
+        for (var entrySet : sortedTFIDF.entrySet()) {
+            topicArticlesTFIDF.remove(entrySet.getKey());
+        }
+    }
+
+    public void writeToFile(Map<String, Double> topicArticles, final String outputFilePath) throws IOException {
+        File file = new File(outputFilePath);
+
+        BufferedWriter bf;
+        bf = new BufferedWriter(new FileWriter(file));
+
+        for (Map.Entry<String, Double> entry :
+                topicArticles.entrySet()) {
+            bf.write(entry.getKey() + ":" + entry.getValue());
+            bf.newLine();
+        }
+        bf.flush();
     }
 }
