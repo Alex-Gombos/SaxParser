@@ -73,24 +73,31 @@ public class WikipediaReader {
     }
 
     // filter the large corpus based on token words, and return a new Article corpus object with the filtered articles
-    public ArticleCorpus filter(ArticleCorpus articleCorpus, List<String> tokensList, String mode) {
+    public ArticleCorpus filter(ArticleCorpus articleCorpus, List<String> tokensList, MATCH mode) {
         String patternString = "(?i)(?:" + StringUtils.join(tokensList, "|") + ")";
         Pattern pattern = Pattern.compile(patternString);
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
         for (Article item : articleCorpus.getArticles()) {
+            boolean foundWord = false;
             for (String item2 : item.getStrings()) {
                 Matcher matcher = pattern.matcher(item2);
-                if(Objects.equals(mode, "match")) {
-                    if (matcher.find()) {
+                if(mode == MATCH.MATCH) {
+                        if (matcher.find()) {
                         listWithFilteredArticles.AppendArticle(item);
                         break;
                     }
                 }
                 else {
-                    if (!matcher.find()) {
-                        listWithFilteredArticles.AppendArticle(item);
+                    if (matcher.find()) {
+                        foundWord = true;
                         break;
                     }
+                }
+            }
+            if(mode == MATCH.NOTMATCH){
+                if(!foundWord){
+
+                    listWithFilteredArticles.AppendArticle(item);
                 }
             }
         }
@@ -172,7 +179,7 @@ public class WikipediaReader {
                             TreeMap::new,
                             Collectors.mapping(Function.identity(), Collectors.counting())));
             // compute term-frequency for each words in every article
-            List<Double> tf = mapOccurrence.entrySet().stream()
+                List<Double> tf = mapOccurrence.entrySet().stream()
                     .map(en -> (double) en.getValue() / splitWords.get(en.getKey()).size()).collect(Collectors.toList());
             double idf = log2((double) splitWords.size() / mapOccurrence.size());
             tfidf.add(tf.stream().map(tfValue -> tfValue * idf).collect(Collectors.toList()));
@@ -212,7 +219,7 @@ public class WikipediaReader {
                                                  HashMap<String, String> wiktionaryWords,
                                          Map<String, Double> topicArticlesTFIDF){
         int baseArticles = 50;
-        ArticleCorpus AllnonTopicArticleCorpus = filter(articleCorpus, tokenList, "notMatch");
+        ArticleCorpus AllnonTopicArticleCorpus = filter(articleCorpus, tokenList, MATCH.NOTMATCH);
         ArticleCorpus nonTopicArticleCorpus = new ArticleCorpus();
 
         int upperbound = AllnonTopicArticleCorpus.getArticles().size()-1;

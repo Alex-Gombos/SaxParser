@@ -1,9 +1,12 @@
 package com.company;
 
+import com.company.DataSet.CreateJson;
 import com.company.SAXParser.WiktionarySaxHandler;
 import com.company.SAXParser.WordDictionary;
 import com.company.Wikipedia.ArticleCorpus;
+import com.company.Wikipedia.MATCH;
 import com.company.Wikipedia.WikipediaReader;
+import org.json.JSONArray;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -48,7 +51,7 @@ public class Main {
         String notMatch = "notMatch";
 
         // Filter said articles
-        listWithFilteredArticles = wikipediaReader.filter(articleCorpus, tokens, match);
+        listWithFilteredArticles = wikipediaReader.filter(articleCorpus, tokens, MATCH.MATCH);
 
         File yourFile = new File("filteredText.txt");
         if(yourFile.createNewFile()){
@@ -84,5 +87,9 @@ public class Main {
 
         wikipediaReader.sampleNonRelatedArticles(articleCorpus, tokens, dictionary, sortedTFIDF);
         wikipediaReader.writeToFile(sortedTFIDF, "tfidf.txt");
+
+        CreateJson createJson = new CreateJson();
+        JSONArray dataSet =  createJson.createListofWords(splitWords, sortedTFIDF);
+        createJson.writeToFile(dataSet);
     }
 }
