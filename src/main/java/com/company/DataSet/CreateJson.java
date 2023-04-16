@@ -8,6 +8,7 @@ import java.util.*;
 
 public class CreateJson {
 
+    final double IDF_Cutoff = 0.88;
     public JSONArray createListofWords(List<List<String>> splitWords, Map<String, Double> sortedTFIDF){
         Map <String, Object> map1 = new HashMap<>();
         JSONArray respJSON = new JSONArray();
@@ -21,7 +22,7 @@ public class CreateJson {
                 wordList.add(word);
                 spaceAfter.add(true);
                 if(sortedTFIDF.get(word)!=null) {
-                    if (sortedTFIDF.get(word) > 0.08) {
+                    if (sortedTFIDF.get(word) > IDF_Cutoff) {
                         nerTags.add("Medical");
                         nerIDS.add(1);
                     } else {

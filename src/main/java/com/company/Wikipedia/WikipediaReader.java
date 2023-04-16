@@ -76,29 +76,25 @@ public class WikipediaReader {
     public ArticleCorpus filter(ArticleCorpus articleCorpus, List<String> tokensList, MATCH mode) {
         String patternString = "(?i)(?:" + StringUtils.join(tokensList, "|") + ")";
         Pattern pattern = Pattern.compile(patternString);
+        Matcher matcher = pattern.matcher("");
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
         for (Article item : articleCorpus.getArticles()) {
             boolean foundWord = false;
             for (String item2 : item.getStrings()) {
-                Matcher matcher = pattern.matcher(item2);
-                if(mode == MATCH.MATCH) {
-                        if (matcher.find()) {
-                        listWithFilteredArticles.AppendArticle(item);
-                        break;
-                    }
-                }
-                else {
-                    if (matcher.find()) {
-                        foundWord = true;
-                        break;
-                    }
+                matcher.reset(item2);
+                if (matcher.find()) {
+                    foundWord = true;
+                    break;
                 }
             }
             if(mode == MATCH.NOTMATCH){
                 if(!foundWord){
-
                     listWithFilteredArticles.AppendArticle(item);
                 }
+            }
+            else {
+                if(foundWord)
+                    listWithFilteredArticles.AppendArticle(item);
             }
         }
         return listWithFilteredArticles;
@@ -108,10 +104,10 @@ public class WikipediaReader {
     public void prepareText(List<String> articleSentence) {
         for (int i = 0; i < articleSentence.size(); i++) {
             String sPatRemove = "[\\[\\]()\\.;:\"„,=→]+";
-            String sText = articleSentence.get(i);
-            sText = sText.replaceAll(sPatRemove, "");
-            sText = sText.replaceAll("\\s+", " ");
-            articleSentence.set(i, sText);
+            String sWord = articleSentence.get(i);
+            sWord = sWord.replaceAll(sPatRemove, "");
+            sWord = sWord.replaceAll("\\s+", " ");
+            articleSentence.set(i, sWord);
         }
     }
 
@@ -140,7 +136,9 @@ public class WikipediaReader {
         for (List<String> item : list) {
             for (String item1 : item) {
                 tempList.add(wiktionaryWords.getOrDefault(item1, item1));
-                tempList.set(tempList.size()-1, tempList.get(tempList.size()-1).replaceAll("^\\s+", ""));
+                if(Objects.equals(wiktionaryWords.get(item1), "poiein"))
+                    System.out.println(item1);
+                tempList.set(tempList.size()-1, tempList.get(tempList.size()-1).replace("^\\s+", ""));
             }
             newList.add(tempList);
             tempList = new ArrayList<>();
@@ -151,15 +149,16 @@ public class WikipediaReader {
 
     // Map each word(String) to a Vector<Integer> to keep in track in what article each word appears and how often
     public Map<String, Vector<Integer>> trackWordFrequencyInArticles(List<List<String>> splitWords) {
+        //TODO nume sugestive
         Map<String, Vector<Integer>> mapWords = new TreeMap<>();
-        for (List<String> strings : splitWords) {
-            for (String item2 : strings) {
+        for (List<String> article : splitWords) { // TODO itereaza cu index
+            for (String word : article) {
                 Vector<Integer> vector = new Vector<>();
-                if (mapWords.containsKey(item2)) {
-                    vector = mapWords.get(item2);
+                if (mapWords.containsKey(word)) {
+                    vector = mapWords.get(word);
                 }
-                vector.add(splitWords.indexOf(strings));
-                mapWords.put(item2, vector);
+                vector.add(splitWords.indexOf(article));
+                mapWords.put(word, vector);
             }
         }
         return mapWords;

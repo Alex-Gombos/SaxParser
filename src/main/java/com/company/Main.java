@@ -45,6 +45,8 @@ public class Main {
         tokens.add("limfocit");
         tokens.add("monocit");
         tokens.add("hematopoeza");
+        tokens.add("gastric");
+        //gastric, gastrina, pilor, colecist, colecistochinin, duoden, hepatic
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
 
         String match = "match";
