@@ -22,5 +22,14 @@
     <orderEntry type="library" name="Maven: com.fasterxml.woodstox:woodstox-core:6.5.0" level="project" />
     <orderEntry type="library" name="Maven: org.json:json:20180130" level="project" />
     <orderEntry type="library" name="Maven: net.java.dev.jna:jna:5.13.0" level="project" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/hunspell.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>

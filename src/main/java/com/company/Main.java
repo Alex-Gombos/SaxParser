@@ -78,6 +78,14 @@ public class Main {
         // word to its root (if it exists in the database)
         splitWords = wikipediaReader.findWordsInWiktionary(listWithFilteredArticles, dictionary);
 
+        List<List<String>> splitWords2 = wikipediaReader.stemWords(articleCorpus);
+        for (List<String> article:splitWords2){
+            for (String word:article){
+                System.out.print(word+ " ");
+            }
+            System.out.println();
+        }
+
         Map<String, Double> mapWordsTFIDF = wikipediaReader.computeTFIDF(splitWords);
 
         final boolean DESC = false;
