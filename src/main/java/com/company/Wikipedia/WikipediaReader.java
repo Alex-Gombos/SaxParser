@@ -1,5 +1,6 @@
 package com.company.Wikipedia;
 
+import dk.dren.hunspell.Hunspell;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
@@ -129,15 +130,16 @@ public class WikipediaReader {
 
     // lemmatization
     // create a new list which holds the same words but changes them to their root (if it exists)
+    
     public List<List<String>> findWordsInWiktionary(ArticleCorpus articleCorpus, HashMap<String, String> wiktionaryWords) {
         List<String> tempList = new ArrayList<>();
-        List<List<String>> list = splitWords(articleCorpus);
+        List<List<String>> articleList = splitWords(articleCorpus);
         List<List<String>> newList = new ArrayList<>();
-        for (List<String> item : list) {
-            for (String item1 : item) {
-                tempList.add(wiktionaryWords.getOrDefault(item1, item1));
-                if(Objects.equals(wiktionaryWords.get(item1), "poiein"))
-                    System.out.println(item1);
+        for (List<String> article : articleList) {
+            for (String word : article) {
+                tempList.add(wiktionaryWords.getOrDefault(word, word));
+                if(Objects.equals(wiktionaryWords.get(word), "poiein"))
+                    System.out.println(word);
                 tempList.set(tempList.size()-1, tempList.get(tempList.size()-1).replace("^\\s+", ""));
             }
             newList.add(tempList);
@@ -145,6 +147,30 @@ public class WikipediaReader {
         }
 
         return newList;
+    }
+
+    public List<List<String>> stemWords(ArticleCorpus articleCorpus) throws FileNotFoundException, UnsupportedEncodingException {
+        Hunspell hunspell = Hunspell.getInstance();
+        Hunspell.Dictionary dictionary = hunspell.getDictionary("ro_RO");
+        List<List<String>> articleList = splitWords(articleCorpus);
+        List<String> tempArticle = new ArrayList<>();
+        List<List<String>> newArticleList = new ArrayList<>();
+        List<String>stems = new ArrayList<>();
+        tempArticle = new ArrayList<>();
+        for(List<String> article:articleList){
+            for(String word:article){
+                stems = dictionary.stem(word);
+                if (stems.size() == 0) {
+                    tempArticle.add(word);
+                } else {
+                    tempArticle.add(stems.get(stems.size()-1));
+                }
+            }
+            stems.clear();
+            newArticleList.add(tempArticle);
+            tempArticle.clear();
+        }
+        return newArticleList;
     }
 
     // Map each word(String) to a Vector<Integer> to keep in track in what article each word appears and how often

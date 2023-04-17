@@ -45,12 +45,9 @@ public class Main {
         tokens.add("limfocit");
         tokens.add("monocit");
         tokens.add("hematopoeza");
-        tokens.add("gastric");
+       // tokens.add("gastric");
         //gastric, gastrina, pilor, colecist, colecistochinin, duoden, hepatic
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
-
-        String match = "match";
-        String notMatch = "notMatch";
 
         // Filter said articles
         listWithFilteredArticles = wikipediaReader.filter(articleCorpus, tokens, MATCH.MATCH);
@@ -76,22 +73,23 @@ public class Main {
 
         // split articles into words, and change every
         // word to its root (if it exists in the database)
-        splitWords = wikipediaReader.findWordsInWiktionary(listWithFilteredArticles, dictionary);
+        //splitWords = wikipediaReader.findWordsInWiktionary(listWithFilteredArticles, dictionary);
 
-        Map<String, Double> mapWordsTFIDF = wikipediaReader.computeTFIDF(splitWords);
+        List<List<String>> splitWords2 = wikipediaReader.stemWords(listWithFilteredArticles);
+        Map<String, Double> mapWordsTFIDF = wikipediaReader.computeTFIDF(splitWords2);
 
         final boolean DESC = false;
         Map<String, Double> sortedTFIDF = wikipediaReader.sortByValueMap(mapWordsTFIDF, DESC);
         for(String key:sortedTFIDF.keySet()){
             System.out.println("Word " + key + " has a value of: " + sortedTFIDF.get(key));
         }
-        System.out.println(splitWords.size());
+        System.out.println(splitWords2.size());
 
         wikipediaReader.sampleNonRelatedArticles(articleCorpus, tokens, dictionary, sortedTFIDF);
-        wikipediaReader.writeToFile(sortedTFIDF, "tfidf.txt");
+        wikipediaReader.writeToFile(sortedTFIDF, "tfidfHun.txt");
 
         CreateJson createJson = new CreateJson();
-        JSONArray dataSet =  createJson.createListofWords(splitWords, sortedTFIDF);
+        JSONArray dataSet =  createJson.createListofWords(splitWords2, sortedTFIDF);
         createJson.writeToFile(dataSet);
     }
 }
