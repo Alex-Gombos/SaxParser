@@ -64,7 +64,6 @@ public class WikipediaReader {
                 for (String item2 : vector) {
                     strToBytes = item2.getBytes();
                     outputStream.write(strToBytes);
-                    System.out.println(item2);
                 }
                 System.out.println("NEW ARTICLE");
             }
@@ -72,17 +71,52 @@ public class WikipediaReader {
             e.printStackTrace();
         }
     }
-
+    public ArticleCorpus filter(ArticleCorpus articleCorpus, MATCH mode, Map<Integer, TAG> articleLabel,
+                                List<List<String>> tokenList) {
+        ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
+        for(List<String> tokens:tokenList){
+            String patternString = "(?i)(?:" + StringUtils.join(tokens, "|") + ")";
+            Pattern pattern = Pattern.compile(patternString);
+            Matcher matcher = pattern.matcher("");
+            for(Article article : articleCorpus.getArticles()){
+                boolean foundWord = false;
+                for (String line : article.getStrings()) {
+                    matcher.reset(line);
+                    if (matcher.find()) {
+                        foundWord = true;
+                        break;
+                    }
+                }
+                if(mode == MATCH.NOTMATCH){
+                    if(!foundWord){
+                        listWithFilteredArticles.AppendArticle(article);
+                    }
+                }
+                else {
+                    if(foundWord) {
+                        listWithFilteredArticles.AppendArticle(article);
+                        if(tokenList.indexOf(tokens) == 0){
+                            articleLabel.put(listWithFilteredArticles.getArticles().indexOf(article), TAG.OCIT);
+                        }
+                        else{
+                            articleLabel.put(listWithFilteredArticles.getArticles().indexOf(article), TAG.GASTRO);
+                        }
+                    }
+                }
+            }
+        }
+        return listWithFilteredArticles;
+    }
     // filter the large corpus based on token words, and return a new Article corpus object with the filtered articles
     public ArticleCorpus filter(ArticleCorpus articleCorpus, List<String> tokensList, MATCH mode) {
         String patternString = "(?i)(?:" + StringUtils.join(tokensList, "|") + ")";
         Pattern pattern = Pattern.compile(patternString);
         Matcher matcher = pattern.matcher("");
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
-        for (Article item : articleCorpus.getArticles()) {
+        for (Article article : articleCorpus.getArticles()) {
             boolean foundWord = false;
-            for (String item2 : item.getStrings()) {
-                matcher.reset(item2);
+            for (String line : article.getStrings()) {
+                matcher.reset(line);
                 if (matcher.find()) {
                     foundWord = true;
                     break;
@@ -90,12 +124,12 @@ public class WikipediaReader {
             }
             if(mode == MATCH.NOTMATCH){
                 if(!foundWord){
-                    listWithFilteredArticles.AppendArticle(item);
+                    listWithFilteredArticles.AppendArticle(article);
                 }
             }
             else {
                 if(foundWord)
-                    listWithFilteredArticles.AppendArticle(item);
+                    listWithFilteredArticles.AppendArticle(article);
             }
         }
         return listWithFilteredArticles;
@@ -120,7 +154,6 @@ public class WikipediaReader {
             prepareText(item.getStrings());
             List<String> items = new ArrayList<>();
             for (String item2 : item.getStrings()) {
-                //Arrays.stream(item2.split(" ")).forEach(x->items.add(x));
                 items.addAll(Arrays.asList(item2.split(" ")));
             }
             splitWords.add(items);
@@ -130,7 +163,7 @@ public class WikipediaReader {
 
     // lemmatization
     // create a new list which holds the same words but changes them to their root (if it exists)
-    
+
     public List<List<String>> findWordsInWiktionary(ArticleCorpus articleCorpus, HashMap<String, String> wiktionaryWords) {
         List<String> tempList = new ArrayList<>();
         List<List<String>> articleList = splitWords(articleCorpus);
@@ -138,9 +171,7 @@ public class WikipediaReader {
         for (List<String> article : articleList) {
             for (String word : article) {
                 tempList.add(wiktionaryWords.getOrDefault(word, word));
-                if(Objects.equals(wiktionaryWords.get(word), "poiein"))
-                    System.out.println(word);
-                tempList.set(tempList.size()-1, tempList.get(tempList.size()-1).replace("^\\s+", ""));
+                tempList.set(tempList.size()-1, tempList.get(tempList.size()-1).replaceAll("^\\s+", ""));
             }
             newList.add(tempList);
             tempList = new ArrayList<>();
@@ -149,7 +180,7 @@ public class WikipediaReader {
         return newList;
     }
 
-    public List<List<String>> stemWords(ArticleCorpus articleCorpus) throws FileNotFoundException, UnsupportedEncodingException {
+    public List<List<String>> stemmedWordsArticleList(ArticleCorpus articleCorpus) throws FileNotFoundException, UnsupportedEncodingException {
         Hunspell hunspell = Hunspell.getInstance();
         Hunspell.Dictionary dictionary = hunspell.getDictionary("ro_RO");
         List<List<String>> articleList = splitWords(articleCorpus);
@@ -165,25 +196,26 @@ public class WikipediaReader {
                 } else {
                     tempArticle.add(stems.get(stems.size()-1));
                 }
+                tempArticle.set(tempArticle.size()-1, tempArticle.get(tempArticle.size()-1).replaceAll("^\\s+", ""));
             }
             stems.clear();
             newArticleList.add(tempArticle);
-            tempArticle.clear();
+            tempArticle = new ArrayList<>();
         }
         return newArticleList;
     }
 
     // Map each word(String) to a Vector<Integer> to keep in track in what article each word appears and how often
     public Map<String, Vector<Integer>> trackWordFrequencyInArticles(List<List<String>> splitWords) {
-        //TODO nume sugestive
         Map<String, Vector<Integer>> mapWords = new TreeMap<>();
-        for (List<String> article : splitWords) { // TODO itereaza cu index
-            for (String word : article) {
+        List<String> articleList = new ArrayList<>();
+        for (int i=0; i<splitWords.size(); i++) {
+            for (String word : splitWords.get(i)) {
                 Vector<Integer> vector = new Vector<>();
                 if (mapWords.containsKey(word)) {
                     vector = mapWords.get(word);
                 }
-                vector.add(splitWords.indexOf(article));
+                vector.add(i);
                 mapWords.put(word, vector);
             }
         }
@@ -243,7 +275,7 @@ public class WikipediaReader {
                                                  List<String> tokenList,
                                                  HashMap<String, String> wiktionaryWords,
                                          Map<String, Double> topicArticlesTFIDF){
-        int baseArticles = 50;
+        int baseArticles = 200;
         ArticleCorpus AllnonTopicArticleCorpus = filter(articleCorpus, tokenList, MATCH.NOTMATCH);
         ArticleCorpus nonTopicArticleCorpus = new ArticleCorpus();
 
