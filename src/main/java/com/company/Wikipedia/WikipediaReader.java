@@ -52,6 +52,19 @@ public class WikipediaReader {
         }
     }
 
+    public List<List<String>> splitIntoSentence(ArticleCorpus articleCorpus) {
+        List<List<String>> split = new ArrayList<>();
+        for (Article article : articleCorpus.getArticles()) {
+            prepareText(article.getStrings());
+            for (String line : article.getStrings()) {
+                List<String> sentence = new ArrayList<>(Arrays.asList(line.split(" ")));
+                split.add(sentence);
+                System.out.println(sentence);
+            }
+        }
+        return split;
+    }
+
     // print every article stored in memory
     public void out(File file, ArticleCorpus articleCorpus) {
         FileOutputStream outputStream;

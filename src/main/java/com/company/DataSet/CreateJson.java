@@ -10,37 +10,33 @@ import java.util.*;
 public class CreateJson {
 
     final double IDF_Cutoff = 0.01;
-
-    public JSONArray createListofWords(List<List<String>> stemmedWords, Map<String, Double> sortedTFIDF,
-                                       List<List<String>> splitWords, Map<Integer, TAG> articleLabel){
+    public JSONArray createListofWordsSentence(List<List<String>> stemmedWords, Map<String, Double> sortedTFIDF,
+                                       List<List<String>> splitIntoSentence, Map<Integer, TAG> articleLabel){
         Map <String, Object> map1 = new HashMap<>();
         JSONArray respJSON = new JSONArray();
-        int index = 0;
-        for(int i=0; i<stemmedWords.size(); i++){
+        int ids = 0;
+        int indexStemmedWord = 0;
+        int indexStemmedArticle = 0;
+        for(List<String> sentence:splitIntoSentence){
             List<String> wordList = new ArrayList<>();
             List<String> nerTags = new ArrayList<>();
             List<Integer> nerIDS = new ArrayList<>();
             List<Boolean> spaceAfter = new ArrayList<>();
-            List<String> stemmedWordsGet = stemmedWords.get(i);
-            List<String> wordsNotStemmedGet = splitWords.get(i);
-            for (int j=0; j<stemmedWordsGet.size(); j++){
-                String wordStemmed = stemmedWordsGet.get(j);
-                String wordNotStemmed;
-                if(j<wordsNotStemmedGet.size())
-                    wordNotStemmed = wordsNotStemmedGet.get(j);
-                else
-                    wordNotStemmed = wordStemmed;
-                wordList.add(wordNotStemmed);
+            for(String word:sentence){
+                wordList.add(word);
                 spaceAfter.add(true);
-                if(sortedTFIDF.get(wordStemmed)!=null) {
+                if(indexStemmedArticle==314)
+                    System.out.println(word);
+                String wordStemmed = stemmedWords.get(indexStemmedArticle).get(indexStemmedWord);
+                if(sortedTFIDF.get(wordStemmed)!=null){
                     if (sortedTFIDF.get(wordStemmed) > IDF_Cutoff) {
-                        if(articleLabel.get(i)==TAG.GASTRO) {
-                            nerTags.add("GASTRO");
+                        if(articleLabel.get(indexStemmedArticle)==TAG.GASTRO) {
+                            nerTags.add("B-GASTRO");
                             nerIDS.add(1);
                         }
                         else{
-                            if(articleLabel.get(i)==TAG.OCIT) {
-                                nerTags.add("OCIT");
+                            if(articleLabel.get(indexStemmedArticle)==TAG.OCIT) {
+                                nerTags.add("B-HEMA");
                                 nerIDS.add(2);
                             }
                             else {
@@ -49,14 +45,24 @@ public class CreateJson {
                             }
                         }
                     }
+                    else{
+                        nerTags.add("O");
+                        nerIDS.add(0);
+                    }
                 }
                 else{
                     nerTags.add("O");
                     nerIDS.add(0);
                 }
+                indexStemmedWord++;
+                if(indexStemmedWord==stemmedWords.get(indexStemmedArticle).size()){
+                    indexStemmedWord = 0;
+                    indexStemmedArticle++;
+                }
             }
-            map1.put("id", index);
-            index++;
+            spaceAfter.add(false);
+            map1.put("id", ids);
+            ids++;
             map1.put("tokens", wordList);
             map1.put("ner_tags", nerTags);
             map1.put("ner_ids", nerIDS);
@@ -64,11 +70,12 @@ public class CreateJson {
 
             respJSON.put(map1);
         }
+        System.out.println(indexStemmedArticle);
         return  respJSON;
     }
     public void writeToFile(JSONArray jsonArray){
         try {
-            FileWriter file = new FileWriter("output.txt");
+            FileWriter file = new FileWriter("outputSentence.txt");
             file.write(jsonArray.toString());
             file.close();
         } catch (IOException e) {

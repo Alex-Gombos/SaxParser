@@ -89,7 +89,7 @@ public class Main {
 
         wordDictionary.createWiktionaryMap(yourFile1); // create a map for which the key is the actual word and the value is its root
         HashMap<String, String> dictionary = wordDictionary.getWiktionaryMap();
-        List<List<String>> splitWords = wikipediaReader.splitWords(listWithFilteredArticles);
+        List<List<String>> splitWords = wikipediaReader.splitIntoSentence(listWithFilteredArticles);
 
         // split articles into words, and change every
         // word to its root (if it exists in the database)
@@ -109,7 +109,7 @@ public class Main {
         wikipediaReader.writeToFile(sortedTFIDF, "tfidfHun.txt");
 
         CreateJson createJson = new CreateJson();
-        JSONArray dataSet =  createJson.createListofWords(stemmedWordsHun, sortedTFIDF, splitWords, articleLabel);
+        JSONArray dataSet =  createJson.createListofWordsSentence(stemmedWordsHun, sortedTFIDF, splitWords, articleLabel);
         createJson.writeToFile(dataSet);
     }
 }
