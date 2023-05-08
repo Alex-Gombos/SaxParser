@@ -52,19 +52,6 @@ public class WikipediaReader {
         }
     }
 
-    public List<List<String>> splitIntoSentence(ArticleCorpus articleCorpus) {
-        List<List<String>> split = new ArrayList<>();
-        for (Article article : articleCorpus.getArticles()) {
-            prepareText(article.getStrings());
-            for (String line : article.getStrings()) {
-                List<String> sentence = new ArrayList<>(Arrays.asList(line.split(" ")));
-                split.add(sentence);
-                System.out.println(sentence);
-            }
-        }
-        return split;
-    }
-
     // print every article stored in memory
     public void out(File file, ArticleCorpus articleCorpus) {
         FileOutputStream outputStream;
@@ -151,12 +138,48 @@ public class WikipediaReader {
     // clean text
     public void prepareText(List<String> articleSentence) {
         for (int i = 0; i < articleSentence.size(); i++) {
-            String sPatRemove = "[\\[\\]()\\.;:\"„,=→]+";
+            String sPatRemove = "[\\[\\]();:\"„”=→]+";
             String sWord = articleSentence.get(i);
             sWord = sWord.replaceAll(sPatRemove, "");
             sWord = sWord.replaceAll("\\s+", " ");
+            sWord = sWord.replace("ţ", "ț").replace("ş", "ș").replace("Ţ", "Ț").replace("Ş", "Ș");
+            sWord = sWord.replaceAll("\\u25AA", "");
+            sWord = sWord.replaceAll(",(?!\\s)", ", ");
+            sWord = sWord.replaceAll("\\.(?!\\s)", ". ");
             articleSentence.set(i, sWord);
         }
+    }
+
+    public List<List<String>> addCharactersAsItems(List<List<String>> splitWords) {
+        List<List<String>> newSplitWords = new ArrayList<>();
+        for (List<String> article : splitWords) {
+            List<String> items = new ArrayList<>();
+            for (String word : article) {
+                int last = word.length() - 1;
+                if (last >= 0 && (word.charAt(last) == ',' || word.charAt(last) == '.')) {
+                    // If the last character is a comma or period, add it as a separate element
+                    items.add(word.substring(0, last));
+                    items.add(word.substring(last));
+                    System.out.println(word.substring(0, last) + " si " + word.substring(last));
+                } else {
+                    items.add(word);
+                }
+            }
+            newSplitWords.add(items);
+        }
+        return newSplitWords;
+    }
+
+    public List<List<String>> splitIntoSentence(ArticleCorpus articleCorpus) {
+        List<List<String>> split = new ArrayList<>();
+        for (Article article : articleCorpus.getArticles()) {
+            prepareText(article.getStrings());
+            for (String line : article.getStrings()) {
+                List<String> sentence = new ArrayList<>(Arrays.asList(line.split(" ")));
+                split.add(sentence);
+            }
+        }
+        return addCharactersAsItems(split);
     }
 
     // tokenize the text into words, List<String> holds all words in an article,
@@ -171,15 +194,16 @@ public class WikipediaReader {
             }
             splitWords.add(items);
         }
-        return splitWords;
+        //return splitWords;
+
+        return addCharactersAsItems(splitWords);
     }
 
     // lemmatization
     // create a new list which holds the same words but changes them to their root (if it exists)
 
-    public List<List<String>> findWordsInWiktionary(ArticleCorpus articleCorpus, HashMap<String, String> wiktionaryWords) {
+    public List<List<String>> findWordsInWiktionary(List<List<String>> articleList, HashMap<String, String> wiktionaryWords) {
         List<String> tempList = new ArrayList<>();
-        List<List<String>> articleList = splitWords(articleCorpus);
         List<List<String>> newList = new ArrayList<>();
         for (List<String> article : articleList) {
             for (String word : article) {
@@ -189,8 +213,16 @@ public class WikipediaReader {
             newList.add(tempList);
             tempList = new ArrayList<>();
         }
-
         return newList;
+    }
+
+    public String shortestStem(List<String>stems){
+        String shortest = stems.get(0);
+        for(String word:stems){
+            if(word.length()<shortest.length())
+                shortest = word;
+        }
+        return shortest;
     }
 
     public List<List<String>> stemmedWordsArticleList(ArticleCorpus articleCorpus) throws FileNotFoundException, UnsupportedEncodingException {
@@ -207,7 +239,8 @@ public class WikipediaReader {
                 if (stems.size() == 0) {
                     tempArticle.add(word);
                 } else {
-                    tempArticle.add(stems.get(stems.size()-1));
+                    String stem = shortestStem(stems);
+                    tempArticle.add(stem);
                 }
                 tempArticle.set(tempArticle.size()-1, tempArticle.get(tempArticle.size()-1).replaceAll("^\\s+", ""));
             }
@@ -287,7 +320,7 @@ public class WikipediaReader {
     public void sampleNonRelatedArticles(ArticleCorpus articleCorpus,
                                                  List<String> tokenList,
                                                  HashMap<String, String> wiktionaryWords,
-                                         Map<String, Double> topicArticlesTFIDF){
+                                         Map<String, Double> topicArticlesTFIDF) throws FileNotFoundException, UnsupportedEncodingException {
         int baseArticles = 200;
         ArticleCorpus AllnonTopicArticleCorpus = filter(articleCorpus, tokenList, MATCH.NOTMATCH);
         ArticleCorpus nonTopicArticleCorpus = new ArticleCorpus();
@@ -301,15 +334,17 @@ public class WikipediaReader {
             int_random = rand.nextInt(upperbound);
         }
 
-        List<List<String>> splitWordsWiktionary = findWordsInWiktionary(nonTopicArticleCorpus, wiktionaryWords);
+        //List<List<String>> splitWordsWiktionary = findWordsInWiktionary(nonTopicArticleCorpus, wiktionaryWords);
+        List<List<String>> splitWordsWiktionary = stemmedWordsArticleList(nonTopicArticleCorpus);
+        List<List<String>> splitWordsHunandWiktionary = findWordsInWiktionary(splitWordsWiktionary, wiktionaryWords);
 
-        Map<String, Double> nonTopicTFIDF = computeTFIDF(splitWordsWiktionary);
+        Map<String, Double> nonTopicTFIDF = computeTFIDF(splitWordsHunandWiktionary);
         final boolean DESC = false;
         Map<String, Double> sortedTFIDF = sortByValueMap(nonTopicTFIDF, DESC);
 
 
-        for (var entrySet : sortedTFIDF.entrySet()) {
-            topicArticlesTFIDF.remove(entrySet.getKey());
+        for (var key : sortedTFIDF.keySet()) {
+            topicArticlesTFIDF.remove(key);
         }
     }
 

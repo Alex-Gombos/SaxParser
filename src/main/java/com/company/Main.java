@@ -13,8 +13,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 public class Main {
@@ -73,7 +72,7 @@ public class Main {
         listWithFilteredArticles = wikipediaReader.filter(articleCorpus, MATCH.MATCH, articleLabel, tokenList);
 
         File yourFile = new File("filteredText.txt");
-        if(yourFile.createNewFile()){
+        if (yourFile.createNewFile()) {
             System.out.println("Created file");
         }
 
@@ -83,7 +82,7 @@ public class Main {
         // This is useful because the wiktionary dump needs to be parsed only one, and the we can just read from the CSV
         File yourFile1 = new File("parseOutPut.csv");
 
-        if(yourFile1.createNewFile()){
+        if (yourFile1.createNewFile()) {
             System.out.println("Created file");
         }
 
@@ -96,20 +95,45 @@ public class Main {
         //splitWords = wikipediaReader.findWordsInWiktionary(listWithFilteredArticles, dictionary);
 
         List<List<String>> stemmedWordsHun = wikipediaReader.stemmedWordsArticleList(listWithFilteredArticles);
-        Map<String, Double> mapWordsTFIDF = wikipediaReader.computeTFIDF(stemmedWordsHun);
+        List<List<String>> stemmedWordsHunandWiktionary = wikipediaReader.findWordsInWiktionary(stemmedWordsHun, dictionary);
+
+        Map<String, Double> mapWordsTFIDF = wikipediaReader.computeTFIDF(stemmedWordsHunandWiktionary);
 
         final boolean DESC = false;
         Map<String, Double> sortedTFIDF = wikipediaReader.sortByValueMap(mapWordsTFIDF, DESC);
-        for(String key:sortedTFIDF.keySet()){
+        for (String key : sortedTFIDF.keySet()) {
             System.out.println("Word " + key + " has a value of: " + sortedTFIDF.get(key));
         }
-        System.out.println(stemmedWordsHun.size());
+        System.out.println(stemmedWordsHunandWiktionary.size());
 
         wikipediaReader.sampleNonRelatedArticles(articleCorpus, tokens, dictionary, sortedTFIDF);
         wikipediaReader.writeToFile(sortedTFIDF, "tfidfHun.txt");
 
         CreateJson createJson = new CreateJson();
-        JSONArray dataSet =  createJson.createListofWordsSentence(stemmedWordsHun, sortedTFIDF, splitWords, articleLabel);
+        JSONArray dataSet = createJson.createListofWordsSentence(stemmedWordsHunandWiktionary, sortedTFIDF, splitWords, articleLabel);
         createJson.writeToFile(dataSet);
+
+        String inputFilePath = "tfidfHun.txt";
+        String outputFilePath = "output_file.csv";
+        double threshold = 0.03; // set your threshold here
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputFilePath));
+             FileWriter writer = new FileWriter(outputFilePath)) {
+
+            writer.append("Words\n");
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(":");
+                String word = parts[0];
+                double value = Double.parseDouble(parts[1]);
+                if (value > threshold) {
+                    writer.append(word).append("\n");
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
