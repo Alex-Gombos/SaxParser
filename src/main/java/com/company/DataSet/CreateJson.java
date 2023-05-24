@@ -3,9 +3,10 @@ package com.company.DataSet;
 import com.company.Wikipedia.TAG;
 import org.json.JSONArray;
 
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
+
+import static org.apache.commons.lang3.StringUtils.replace;
 
 public class CreateJson {
 
@@ -17,6 +18,11 @@ public class CreateJson {
         int ids = 0;
         int indexStemmedWord = 0;
         int indexStemmedArticle = 0;
+
+        Map<String, String> wordAndlabel = correctLabels();
+        List<String> countLabel = new ArrayList<>();
+
+
         for(List<String> sentence:splitIntoSentence){
             List<String> wordList = new ArrayList<>();
             List<String> nerTags = new ArrayList<>();
@@ -30,19 +36,27 @@ public class CreateJson {
                 String wordStemmed = stemmedWords.get(indexStemmedArticle).get(indexStemmedWord);
                 if(sortedTFIDF.get(wordStemmed)!=null){
                     if (sortedTFIDF.get(wordStemmed) > IDF_Cutoff) {
+                        if(!countLabel.contains("B-OTHER"))
+                            countLabel.add("B-OTHER");
                         if(articleLabel.get(indexStemmedArticle)==TAG.GASTRO) {
-                            nerTags.add("B-GASTRO");
+                            nerTags.add("B-OTHER");
                             nerIDS.add(1);
                         }
                         else{
                             if(articleLabel.get(indexStemmedArticle)==TAG.OCIT) {
-                                nerTags.add("B-HEMA");
+                                nerTags.add("B-OTHER");
                                 nerIDS.add(2);
                             }
                             else {
-                                nerTags.add("O");
+                                nerTags.add("B-OTHER");
                                 nerIDS.add(0);
                             }
+                        }
+
+                        if(wordAndlabel.get(word)!=null) {
+                            nerTags.set(nerTags.size() - 1, wordAndlabel.get(word));
+                            if(!countLabel.contains(wordAndlabel.get(word)))
+                                countLabel.set(countLabel.size()-1, wordAndlabel.get(word));
                         }
                     }
                     else{
@@ -64,6 +78,7 @@ public class CreateJson {
             map1.put("id", ids);
             ids++;
             map1.put("tokens", wordList);
+
             map1.put("ner_tags", nerTags);
             map1.put("ner_ids", nerIDS);
             map1.put("space_after", spaceAfter);
@@ -71,7 +86,31 @@ public class CreateJson {
             respJSON.put(map1);
         }
         System.out.println(indexStemmedArticle);
+        System.out.println(countLabel.size());
         return  respJSON;
+    }
+
+    public Map<String, String> correctLabels(){
+        String csvFile = "labelCorrection.csv";
+        String line;
+        String csvSplitBy = ",";
+        Map<String, String> wordAndLabel = new HashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(csvSplitBy);
+                if (data.length >= 3) {
+                    String category = data[2].replace("\"", "").split("::")[0];
+                    category = "B-" + category.toUpperCase();
+                    //System.out.print(data[1] + " ");
+                    //System.out.println(category);
+                    wordAndLabel.put(data[1], category);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return wordAndLabel;
     }
     public void writeToFile(JSONArray jsonArray){
         try {
@@ -79,7 +118,6 @@ public class CreateJson {
             file.write(jsonArray.toString());
             file.close();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }

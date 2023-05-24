@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+
 public class WikipediaReader {
 
     // calculate log2 N indirectly
@@ -272,7 +273,7 @@ public class WikipediaReader {
     public Map<String, Double> computeTFIDF(List<List<String>> splitWords) {
         // key: word in its base form, value: Vector<Integer> with article index where word appears
         Map<String, Vector<Integer>> mapWords = trackWordFrequencyInArticles(splitWords);
-        // matrix to keep track of every words TFIDF in every article
+        // matrix to keep track of every word TFIDF in every article
         List<List<Double>> tfidf = new ArrayList<>();
         // mapOccurrence stores how many times a word appears in which article
         for (Map.Entry<String, Vector<Integer>> entry : mapWords.entrySet()) {

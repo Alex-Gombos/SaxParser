@@ -14,7 +14,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Main {
 
@@ -78,8 +81,8 @@ public class Main {
 
         WordDictionary wordDictionary = new WordDictionary();
 
-        // load the wiktionary words written to the "parseOutPut.csv file" back into memmory.
-        // This is useful because the wiktionary dump needs to be parsed only one, and the we can just read from the CSV
+        // load the wiktionary words written to the "parseOutPut.csv file" back into memory.
+        // This is useful because the wiktionary dump needs to be parsed only one, and then we can just read from the CSV
         File yourFile1 = new File("parseOutPut.csv");
 
         if (yourFile1.createNewFile()) {
@@ -112,6 +115,7 @@ public class Main {
         CreateJson createJson = new CreateJson();
         JSONArray dataSet = createJson.createListofWordsSentence(stemmedWordsHunandWiktionary, sortedTFIDF, splitWords, articleLabel);
         createJson.writeToFile(dataSet);
+        createJson.correctLabels();
 
         String inputFilePath = "tfidfHun.txt";
         String outputFilePath = "output_file.csv";
