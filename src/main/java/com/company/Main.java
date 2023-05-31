@@ -24,6 +24,7 @@ public class Main {
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
 
         // Load Wiktionary into memory
+        // TODO REFACTORING
 
         SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
         SAXParser saxParser = saxParserFactory.newSAXParser();
