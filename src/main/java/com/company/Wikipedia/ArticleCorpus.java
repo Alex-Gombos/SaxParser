@@ -8,9 +8,12 @@ public class ArticleCorpus {
     public ArticleCorpus() {
 
     }
-
     public void AppendArticle(Article article){
         list.add(article);
+    }
+
+    public void RemoveArticle(int articleIndex){
+        list.remove(articleIndex);
     }
 
     public ArrayList<Article> getArticles() {

@@ -60,25 +60,33 @@ public class WikipediaReader {
             outputStream = new FileOutputStream(file);
             ArrayList<Article> arrayList = articleCorpus.getArticles();
             byte[] strToBytes;
+            int count = 0;
             for (Article item : arrayList) {
+                if(count>=200)
+                    break;
                 ArrayList<String> vector = item.getStrings();
                 for (String item2 : vector) {
                     strToBytes = item2.getBytes();
                     outputStream.write(strToBytes);
                 }
-                System.out.println("NEW ARTICLE");
+                strToBytes = "\n".getBytes();
+                outputStream.write(strToBytes);
+                outputStream.write(strToBytes);
+                count++;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
     public ArticleCorpus filter(ArticleCorpus articleCorpus, MATCH mode, Map<Integer, TAG> articleLabel,
-                                List<List<String>> tokenList) {
+                                List<List<String>> tokenList, ArticleCorpus articleCorpusWithoutTrainArticles) {
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
+        int count = 0;
         for(List<String> tokens:tokenList){
             String patternString = "(?i)(?:" + StringUtils.join(tokens, "|") + ")";
             Pattern pattern = Pattern.compile(patternString);
             Matcher matcher = pattern.matcher("");
+            int articleIndex = 0;
             for(Article article : articleCorpus.getArticles()){
                 boolean foundWord = false;
                 for (String line : article.getStrings()) {
@@ -90,12 +98,19 @@ public class WikipediaReader {
                 }
                 if(mode == MATCH.NOTMATCH){
                     if(!foundWord){
+                        count++;
                         listWithFilteredArticles.AppendArticle(article);
+                        articleCorpusWithoutTrainArticles.RemoveArticle(articleIndex);
+                        articleIndex--;
+                        if(count>=250)
+                            break;
                     }
                 }
                 else {
                     if(foundWord) {
                         listWithFilteredArticles.AppendArticle(article);
+                        articleCorpusWithoutTrainArticles.RemoveArticle(articleIndex);
+                        articleIndex--;
                         if(tokenList.indexOf(tokens) == 0){
                             articleLabel.put(listWithFilteredArticles.getArticles().indexOf(article), TAG.OCIT);
                         }
@@ -104,6 +119,7 @@ public class WikipediaReader {
                         }
                     }
                 }
+                articleIndex++;
             }
         }
         return listWithFilteredArticles;
@@ -114,6 +130,7 @@ public class WikipediaReader {
         Pattern pattern = Pattern.compile(patternString);
         Matcher matcher = pattern.matcher("");
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
+        int count = 0 ;
         for (Article article : articleCorpus.getArticles()) {
             boolean foundWord = false;
             for (String line : article.getStrings()) {
@@ -125,7 +142,10 @@ public class WikipediaReader {
             }
             if(mode == MATCH.NOTMATCH){
                 if(!foundWord){
+                    count++;
                     listWithFilteredArticles.AppendArticle(article);
+                    if(count>=250)
+                        break;
                 }
             }
             else {
@@ -161,7 +181,6 @@ public class WikipediaReader {
                     // If the last character is a comma or period, add it as a separate element
                     items.add(word.substring(0, last));
                     items.add(word.substring(last));
-                    System.out.println(word.substring(0, last) + " si " + word.substring(last));
                 } else {
                     items.add(word);
                 }
@@ -361,5 +380,80 @@ public class WikipediaReader {
             bf.newLine();
         }
         bf.flush();
+    }
+
+    public List<String> nonMedicalWords(ArticleCorpus articleCorpus){
+        List<List<String>> splitWords = splitWords(articleCorpus);
+        List<String> nonMedicalWordsList = new ArrayList<>();
+        int count = 200;
+        for(List<String> article:splitWords){
+            if (count <= 0)
+                break;
+            nonMedicalWordsList.addAll(article);
+            for(String word:article){
+                System.out.println(word);
+            }
+            count--;
+        }
+        return nonMedicalWordsList;
+    }
+
+    public void trimText(){
+        String inputFile = "nonTrainArticles.txt"; // Path to the input file
+        String outputFile = "nonTrainArticles2.txt"; // Path to the output file
+        int maxWordsPerParagraph = 250;
+
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+
+            String line;
+            int wordCount = 0;
+            while ((line = reader.readLine()) != null) {
+                if (line.isEmpty()) {
+                    writer.newLine(); // Preserve empty lines
+                    wordCount = 0;
+                } else {
+                    String[] words = line.split("\\s+");
+                    if (wordCount + words.length <= maxWordsPerParagraph) {
+                        writer.write(line);
+                        writer.newLine();
+                        wordCount += words.length;
+                    } else {
+                        int wordsToAdd = maxWordsPerParagraph - wordCount;
+                        for (int i = 0; i < wordsToAdd; i++) {
+                            writer.write(words[i]);
+                            if (i < wordsToAdd - 1) {
+                                writer.write(" ");
+                            }
+                        }
+                        writer.newLine();
+                        wordCount = maxWordsPerParagraph;
+                    }
+                }
+            }
+
+            reader.close();
+            writer.close();
+
+            System.out.println("Paragraph trimming completed.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public ArticleCorpus getRandomArticles(int numberOfArticles, ArticleCorpus articleCorpus){
+        ArticleCorpus randomArticlesCorpus = new ArticleCorpus();
+
+        int upperbound = articleCorpus.getArticles().size()-1;
+        Random rand = new Random();
+        int int_random = rand.nextInt(upperbound);
+        while(numberOfArticles >0){
+            randomArticlesCorpus.AppendArticle(articleCorpus.getArticles().get(int_random));
+            numberOfArticles--;
+            int_random = rand.nextInt(upperbound);
+        }
+
+        return randomArticlesCorpus;
     }
 }

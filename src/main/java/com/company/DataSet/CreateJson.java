@@ -12,7 +12,8 @@ public class CreateJson {
 
     final double IDF_Cutoff = 0.01;
     public JSONArray createListofWordsSentence(List<List<String>> stemmedWords, Map<String, Double> sortedTFIDF,
-                                       List<List<String>> splitIntoSentence, Map<Integer, TAG> articleLabel){
+                                       List<List<String>> splitIntoSentence, Map<Integer, TAG> articleLabel,
+                                               List<String> nonMedicalWordsList){
         Map <String, Object> map1 = new HashMap<>();
         JSONArray respJSON = new JSONArray();
         int ids = 0;
@@ -48,7 +49,7 @@ public class CreateJson {
                                 nerIDS.add(2);
                             }
                             else {
-                                nerTags.add("B-OTHER");
+                                nerTags.add("O");
                                 nerIDS.add(0);
                             }
                         }
@@ -57,6 +58,9 @@ public class CreateJson {
                             nerTags.set(nerTags.size() - 1, wordAndlabel.get(word));
                             if(!countLabel.contains(wordAndlabel.get(word)))
                                 countLabel.set(countLabel.size()-1, wordAndlabel.get(word));
+                        }
+                        if(nonMedicalWordsList.contains(word)){
+                            nerTags.set(nerTags.size() - 1, "O");
                         }
                     }
                     else{
@@ -102,8 +106,6 @@ public class CreateJson {
                 if (data.length >= 3) {
                     String category = data[2].replace("\"", "").split("::")[0];
                     category = "B-" + category.toUpperCase();
-                    //System.out.print(data[1] + " ");
-                    //System.out.println(category);
                     wordAndLabel.put(data[1], category);
                 }
             }

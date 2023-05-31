@@ -38,7 +38,9 @@ public class Main {
 
         WikipediaReader wikipediaReader = new WikipediaReader();
         ArticleCorpus articleCorpus = new ArticleCorpus();
+        ArticleCorpus articleCorpusWithoutTrainArticles = new ArticleCorpus();
         wikipediaReader.read("wiki.txt", articleCorpus);
+        wikipediaReader.read("wiki.txt", articleCorpusWithoutTrainArticles);
 
 
         // Choose words by which to filter the wikipedia articles
@@ -67,12 +69,28 @@ public class Main {
         tokenList.add(tokens1);
         tokenList.add(tokens2);
 
+        List<String> nonMedicalWords = new ArrayList<>();
+        nonMedicalWords.add("ministru");
+        nonMedicalWords.add("miniștri");
+        nonMedicalWords.add("wrestler");
+        nonMedicalWords.add("bodyguard");
+
+
+
+
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
 
         // Filter said articles
         Map<Integer, TAG> articleLabel = new HashMap<>();
         //listWithFilteredArticles = wikipediaReader.filter(articleCorpus, tokens, MATCH.MATCH);
-        listWithFilteredArticles = wikipediaReader.filter(articleCorpus, MATCH.MATCH, articleLabel, tokenList);
+        listWithFilteredArticles = wikipediaReader.filter(articleCorpus, MATCH.MATCH, articleLabel, tokenList, articleCorpusWithoutTrainArticles);
+
+        System.out.println("non related articles");
+        File outputNonTranArticles = new File("nonTrainArticles.txt");
+        System.out.println(articleCorpusWithoutTrainArticles.getArticles().size());
+        System.out.println(articleCorpus.getArticles().size());
+        wikipediaReader.out(outputNonTranArticles, wikipediaReader.getRandomArticles(200, articleCorpusWithoutTrainArticles));
+        wikipediaReader.trimText();
 
         File yourFile = new File("filteredText.txt");
         if (yourFile.createNewFile()) {
@@ -104,18 +122,24 @@ public class Main {
 
         final boolean DESC = false;
         Map<String, Double> sortedTFIDF = wikipediaReader.sortByValueMap(mapWordsTFIDF, DESC);
-        for (String key : sortedTFIDF.keySet()) {
-            System.out.println("Word " + key + " has a value of: " + sortedTFIDF.get(key));
-        }
+//        for (String key : sortedTFIDF.keySet()) {
+//            System.out.println("Word " + key + " has a value of: " + sortedTFIDF.get(key));
+//        }
         System.out.println(stemmedWordsHunandWiktionary.size());
 
         wikipediaReader.sampleNonRelatedArticles(articleCorpus, tokens, dictionary, sortedTFIDF);
         wikipediaReader.writeToFile(sortedTFIDF, "tfidfHun.txt");
+        System.out.println("inainte de primul nonMedicalWPrds");
+        List<String> nonMedicalWordsList = wikipediaReader.nonMedicalWords(wikipediaReader.filter(articleCorpusWithoutTrainArticles, nonMedicalWords, MATCH.MATCH));
+        System.out.println("dupa de primul nonMedicalWPrds");
+
+        System.out.println("inainte de al doilea nonMedicalWPrds");
+        nonMedicalWordsList.addAll(wikipediaReader.nonMedicalWords(wikipediaReader.filter(articleCorpusWithoutTrainArticles, nonMedicalWords, MATCH.NOTMATCH)));
+        System.out.println("dupa de al doilea  nonMedicalWPrds");
 
         CreateJson createJson = new CreateJson();
-        JSONArray dataSet = createJson.createListofWordsSentence(stemmedWordsHunandWiktionary, sortedTFIDF, splitWords, articleLabel);
+        JSONArray dataSet = createJson.createListofWordsSentence(stemmedWordsHunandWiktionary, sortedTFIDF, splitWords, articleLabel, nonMedicalWordsList);
         createJson.writeToFile(dataSet);
-        createJson.correctLabels();
 
         String inputFilePath = "tfidfHun.txt";
         String outputFilePath = "output_file.csv";
