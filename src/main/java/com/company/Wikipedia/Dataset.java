@@ -1,5 +1,6 @@
 package com.company.Wikipedia;
 
+import com.company.DataSet.CreateJson;
 import dk.dren.hunspell.Hunspell;
 import org.apache.commons.lang3.StringUtils;
 
@@ -12,7 +13,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
-public class WikipediaReader {
+public class Dataset {
 
     // calculate log2 N indirectly
     // using log() method
@@ -32,7 +33,7 @@ public class WikipediaReader {
                     // add read line to a article
                     article.AddWord(line);
                 } else {
-                    // add article to corpus Obect
+                    // add article to corpus Object
                     articleCorpus.AppendArticle(article);
                     article = new Article();
                 }
@@ -78,6 +79,7 @@ public class WikipediaReader {
             e.printStackTrace();
         }
     }
+    // filter method that also removes articles used for training
     public ArticleCorpus filter(ArticleCorpus articleCorpus, MATCH mode, Map<Integer, TAG> articleLabel,
                                 List<List<String>> tokenList, ArticleCorpus articleCorpusWithoutTrainArticles) {
         ArticleCorpus listWithFilteredArticles = new ArticleCorpus();
@@ -171,7 +173,8 @@ public class WikipediaReader {
         }
     }
 
-    public List<List<String>> addCharactersAsItems(List<List<String>> splitWords) {
+    // add punctuation marks as elements
+    public List<List<String>> addPunctuationAsItems(List<List<String>> splitWords) {
         List<List<String>> newSplitWords = new ArrayList<>();
         for (List<String> article : splitWords) {
             List<String> items = new ArrayList<>();
@@ -199,7 +202,7 @@ public class WikipediaReader {
                 split.add(sentence);
             }
         }
-        return addCharactersAsItems(split);
+        return addPunctuationAsItems(split);
     }
 
     // tokenize the text into words, List<String> holds all words in an article,
@@ -216,7 +219,7 @@ public class WikipediaReader {
         }
         //return splitWords;
 
-        return addCharactersAsItems(splitWords);
+        return addPunctuationAsItems(splitWords);
     }
 
     // lemmatization
@@ -385,7 +388,7 @@ public class WikipediaReader {
     public List<String> nonMedicalWords(ArticleCorpus articleCorpus){
         List<List<String>> splitWords = splitWords(articleCorpus);
         List<String> nonMedicalWordsList = new ArrayList<>();
-        int count = 200;
+        int count = 300;
         for(List<String> article:splitWords){
             if (count <= 0)
                 break;
@@ -401,7 +404,7 @@ public class WikipediaReader {
     public void trimText(){
         String inputFile = "nonTrainArticles.txt"; // Path to the input file
         String outputFile = "nonTrainArticles2.txt"; // Path to the output file
-        int maxWordsPerParagraph = 250;
+        int maxWordsPerParagraph = 200;
 
         try {
             BufferedReader reader = new BufferedReader(new FileReader(inputFile));
@@ -442,15 +445,45 @@ public class WikipediaReader {
         }
     }
 
+    public void wordsNotInExcel(List<List<String>> stemmedWords, List<List<String>> splitWords){
+        Map<String, String> wordAndlabel = CreateJson.correctLabels();
+        String outputFile = "wordsNotInExcel.txt";
+        int indexStemmedArticle = 0;
+        Set<String> uniqueWords = new HashSet<>();
+        for (List<String> sentence : stemmedWords) {
+            if (indexStemmedArticle >= 20)
+                break;
+            for (String word : sentence) {
+                if (word.length() >= 4 && !wordAndlabel.containsKey(word)) {
+                    uniqueWords.add(word);
+                }
+            }
+            indexStemmedArticle++;
+        }
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+                for(String wordToPrint:uniqueWords){
+                    writer.write(wordToPrint);
+                    writer.newLine();
+                }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public ArticleCorpus getRandomArticles(int numberOfArticles, ArticleCorpus articleCorpus){
         ArticleCorpus randomArticlesCorpus = new ArticleCorpus();
+        List<Integer> alreadyPicked = new ArrayList<>();
 
         int upperbound = articleCorpus.getArticles().size()-1;
         Random rand = new Random();
         int int_random = rand.nextInt(upperbound);
         while(numberOfArticles >0){
-            randomArticlesCorpus.AppendArticle(articleCorpus.getArticles().get(int_random));
-            numberOfArticles--;
+            if(!alreadyPicked.contains(int_random)) {
+                alreadyPicked.add(int_random);
+                randomArticlesCorpus.AppendArticle(articleCorpus.getArticles().get(int_random));
+                numberOfArticles--;
+            }
             int_random = rand.nextInt(upperbound);
         }
 

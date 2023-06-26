@@ -54,12 +54,12 @@ public class CreateJson {
                             }
                         }
 
-                        if(wordAndlabel.get(word)!=null) {
-                            nerTags.set(nerTags.size() - 1, wordAndlabel.get(word));
-                            if(!countLabel.contains(wordAndlabel.get(word)))
-                                countLabel.set(countLabel.size()-1, wordAndlabel.get(word));
+                        if(wordAndlabel.get(wordStemmed)!=null) {
+                            nerTags.set(nerTags.size() - 1, wordAndlabel.get(wordStemmed));
+                            if(!countLabel.contains(wordAndlabel.get(wordStemmed)))
+                                countLabel.set(countLabel.size()-1, wordAndlabel.get(wordStemmed));
                         }
-                        if(nonMedicalWordsList.contains(word)){
+                        if(nonMedicalWordsList.contains(wordStemmed)){
                             nerTags.set(nerTags.size() - 1, "O");
                         }
                     }
@@ -94,7 +94,7 @@ public class CreateJson {
         return  respJSON;
     }
 
-    public Map<String, String> correctLabels(){
+    public static Map<String, String> correctLabels(){
         String csvFile = "labelCorrection.csv";
         String line;
         String csvSplitBy = ",";
